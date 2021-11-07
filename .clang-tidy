@@ -1,0 +1,13 @@
+Checks: "clang-analyzer-*,
+         misc-*,
+         modernize-*,
+         performance-*,
+         portability-*,
+         readability-*,
+         -misc-no-recursion,
+         -readability-magic-numbers,
+         -readability-function-cognitive-complexity,
+         -readability-uppercase-literal-suffix,
+         -performance-no-int-to-ptr,
+         -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling"
+WarningsAsErrors: "*"
