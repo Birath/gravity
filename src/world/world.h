@@ -20,6 +20,10 @@ struct render_component {
 	model model;
 };
 
+struct sphere_component {
+	int resolution{1};
+};
+
 class world {
 	entt::registry registry;
 	glm::mat4 view{};

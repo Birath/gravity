@@ -167,14 +167,15 @@ auto render_loop::loop(world& world, renderer& renderer) -> bool {
 		}
 		auto const elapsed_time = (current_time - start_time) * clock_interval;
 		auto const delta_time = time_since_last_frame * clock_interval;
-		world.update(elapsed_time, delta_time);
-		renderer.start_renderer(world.controller.view);
-
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
+		
+		world.update(elapsed_time, delta_time);
+		renderer.start_renderer(world.controller.view);
+
 		show_render_setting_window(renderer);
-		world, world.draw(renderer, elapsed_time, delta_time);
+		world.draw(renderer, elapsed_time, delta_time);
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		SDL_GL_SwapWindow(window);

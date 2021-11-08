@@ -23,7 +23,7 @@ auto renderer::draw_model(model const& model, float elapsed_time, float delta_ti
 	};
 	
 	default_shader.upload_uniform("m.mvp", camera.get_projection() * view * model_matrix);
-	for (auto &&mesh : model.get_meshes())
+	for (auto &&mesh : model.meshes)
 	{
 		draw_mesh(mesh, elapsed_time, delta_time);
 	}
@@ -39,9 +39,12 @@ auto renderer::draw_model(model const& model, float elapsed_time, float delta_ti
 }
 
 auto renderer::draw_mesh(mesh const& mesh, float elapsed_time, float delta_time) const -> void {
+	(void)elapsed_time;
+	(void)delta_time;
 	assert(mesh.vao != 0 && "Mesh buffers must be generated before drawing");
 	glBindVertexArray(mesh.vao);
 	glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh.size()), GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
 }
 
 auto renderer::start_renderer(glm::mat4& render_view) -> void {

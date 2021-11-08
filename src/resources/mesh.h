@@ -14,11 +14,12 @@ struct vertex {
 
 class mesh {
 public:
-    mesh(std::vector<unsigned int> const&& indicies, std::vector<vertex> const&& vertices);
-
+    mesh(std::vector<unsigned int> const&& indices, std::vector<vertex> const&& vertices);
     auto generate_buffer() -> void;
 
-    auto size() const -> size_t {
+    auto update_buffer(std::vector<unsigned int> const&& indices, std::vector<vertex> const&& vertices) -> void;
+
+    [[nodiscard]] auto size() const -> size_t {
         return indices.size();
     }
 

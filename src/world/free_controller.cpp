@@ -29,6 +29,7 @@ auto free_controller::handle_mouse(SDL_MouseMotionEvent const& event) -> void {
 }
 
 auto free_controller::update(float elapsed_time, float delta_time) -> void {
+	(void)elapsed_time;
 	glm::vec3 camera_front{
 		glm::cos(glm::radians(yaw)) * glm::cos(glm::radians(pitch)),
 		glm::sin(glm::radians(pitch)),

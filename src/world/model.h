@@ -7,12 +7,11 @@
 namespace gravity {
 
 class model {
-    std::vector<mesh> meshes{};
 
 public:
     model(std::vector<mesh> const&& meshes);
 
-    auto get_meshes() const -> std::vector<mesh> const&;
+    std::vector<mesh> meshes{};
     
 };
     

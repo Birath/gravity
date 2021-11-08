@@ -9,6 +9,9 @@
 
 namespace gravity::shape {
 
+auto constexpr  max_sphere_resolution{25};
+auto constexpr  min_sphere_resolution{2};
+
 auto create_face(glm::vec3 const normal, unsigned int resolution) -> mesh {
 	auto const axis_a{glm::vec3(normal.y, normal.z, normal.x)};
 	auto const axis_b{glm::cross(normal, axis_a)};
@@ -61,10 +64,10 @@ auto generate_faces(unsigned int resolution) -> std::vector<mesh> {
 
 auto create_plane() -> model {
 	std::vector<vertex> vertices{
-		{.position = {0.5f, 0.5f, 0.0f}},   // top right
-		{.position = {0.5f, -0.5f, 0.0f}},  // bottom right
-		{.position = {-0.5f, -0.5f, 0.0f}}, // bottom left
-		{.position = {-0.5f, 0.5f, 0.0f}},  // top left
+		{.position = {0.5f, 0.5f, 0.0f}, .normal = {}, .uv = {}},   // top right
+		{.position = {0.5f, -0.5f, 0.0f}, .normal = {}, .uv = {}},  // bottom right
+		{.position = {-0.5f, -0.5f, 0.0f}, .normal = {}, .uv = {}}, // bottom left
+		{.position = {-0.5f, 0.5f, 0.0f}, .normal = {}, .uv = {}},  // top left
 	};
 
 	auto indices{std::vector<unsigned int>{0, 1, 3, 1, 2, 3}};
@@ -74,18 +77,30 @@ auto create_plane() -> model {
 	return model{std::move(meshes)};
 }
 
-auto create_sphere() -> model {
-	auto sphere_meshes{generate_faces(5)};
+auto create_sphere(int resolution) -> model {
+	auto sphere_meshes{generate_faces(resolution)};
 
 	for (auto&& mesh : sphere_meshes) {
 		for (auto&& ver : mesh.vertices) {
 			ver.position = glm::normalize(ver.position);
 		}
-        mesh.generate_buffer();
+		mesh.generate_buffer();
 	}
 
 	return model{std::move(sphere_meshes)};
 }
 
+auto regenerate_sphere(model& sphere, int new_resolution) -> void {
+	auto new_meshes{generate_faces(new_resolution)};
+	auto combination{std::vector<std::pair<mesh, mesh>>{}};
+
+	for(size_t i{0}; i < new_meshes.size(); ++i) {
+		for (auto&& ver: new_meshes[i].vertices) {
+			ver.position = glm::normalize(ver.position);
+		}
+		sphere.meshes[i].update_buffer(std::move(new_meshes[i].indices), std::move(new_meshes[i].vertices));
+	}
+}
+
 } // namespace gravity::shape
-#endif SPHERE_H
+#endif

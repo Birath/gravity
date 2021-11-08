@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include <algorithm>
 #include <opengl.h>
 
 namespace gravity {
@@ -18,10 +19,10 @@ auto mesh::generate_buffer() -> void {
 	glBindVertexArray(vao);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex), &vertices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex), &vertices[0], GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_DYNAMIC_DRAW);
 
 	/// test
 	// Vertex positions
@@ -37,6 +38,20 @@ auto mesh::generate_buffer() -> void {
 	glBindVertexArray(0);
 	
 }
+
+auto mesh::update_buffer(std::vector<unsigned int> const&& new_indices, std::vector<vertex> const&& new_vertices) -> void {
+	assert(vao != 0 && "Must generate buffers before updating them");
+	vertices.assign(std::begin(new_vertices), std::end(new_vertices));
+	indices.assign(std::begin(new_indices), std::end(new_indices));
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex), &vertices[0], GL_DYNAMIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_DYNAMIC_DRAW);
+}
+
+
 
 
 } // namespace gravity::resources

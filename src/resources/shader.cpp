@@ -46,7 +46,7 @@ auto shader_program::upload_uniform(std::string const& name, T const& value) con
         glUniform1i(glGetUniformLocation(handle, name.c_str()), value);
     }
     else if constexpr (std::is_floating_point_v<T>) {
-        glUniform1f(glGetUniformLocation(handle, name));
+        glUniform1f(glGetUniformLocation(handle, name.c_str()), value);
     }
 }
 

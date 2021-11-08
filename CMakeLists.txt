@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 project("Gravity" LANGUAGES CXX C)
 
 option(BUILD_SHARED_LIBS "Build dependencies as shared libraries" OFF)
-option(USE_CLANG_TIDY "Use clang-tidy for static analysis warnings" ON)
+option(USE_CLANG_TIDY "Use clang-tidy for static analysis warnings" OFF)
 option(USE_INCLUDE_WHAT_YOU_USE "Use include-what-you-use for include warnings" OFF)
 
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS "src/*.cpp")
