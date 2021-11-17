@@ -35,10 +35,17 @@ auto free_controller::update(float elapsed_time, float delta_time) -> void {
 		glm::sin(glm::radians(pitch)),
 		glm::sin(glm::radians(yaw)) * glm::cos(glm::radians(pitch)),
 	};
+
+	forward = glm::normalize(camera_front);
 	
 	position += velocity.z * glm::normalize(camera_front) * speed * delta_time;
 	position += glm::cross(camera_front, up) * velocity.x * speed * delta_time;
 	position += up * velocity.y * speed * delta_time;
 	view = glm::lookAt(position, position + camera_front, up);
 }
+
+[[nodiscard]] auto free_controller::view_position(float offset) const -> glm::vec3 {
+	return position + forward * offset;
+}
+
 } // namespace gravity

@@ -4,12 +4,13 @@
 #include <fmt/core.h>
 #include <iostream>
 #include <functional>
-
+#include <easy/profiler.h>
 
 int main(int argc, char* argv[]) {
 	(void)argc;
 	(void)argv;
 	fmt::print("Initalizing ...\n");
+	profiler::startListen();
 	gravity::renderer_options options{144.0, 60};
 
 

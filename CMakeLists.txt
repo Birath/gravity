@@ -1,15 +1,17 @@
 cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 project("Gravity" LANGUAGES CXX C)
 
+
 option(BUILD_SHARED_LIBS "Build dependencies as shared libraries" OFF)
 option(USE_CLANG_TIDY "Use clang-tidy for static analysis warnings" OFF)
 option(USE_INCLUDE_WHAT_YOU_USE "Use include-what-you-use for include warnings" OFF)
 
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS "src/*.cpp")
 
+
 add_executable(gravity ${SOURCE_FILES})
 target_include_directories(gravity PRIVATE "include")
-target_include_directories(gravity PRIVATE "src" "src/world" "src/resources")
+target_include_directories(gravity PRIVATE "src" "src/world" "src/resources" "src/systems" "src/components")
 target_compile_features(gravity PRIVATE cxx_std_20 c_std_11)
 target_compile_options(gravity PRIVATE
 	$<$<CXX_COMPILER_ID:GNU>:     -Wall -Wextra   -Wpedantic      -Werror                     $<$<CONFIG:Debug>:-g>   $<$<NOT:$<CONFIG:Debug>>:-O3>>
@@ -29,6 +31,9 @@ endif()
 add_subdirectory(dependencies)
 add_subdirectory(utils)
 
+set(CMAKE_PREFIX_PATH "D:/Downloads/easy_profiler-v2.1.0-msvc15-win64/lib/cmake/easy_profiler;${CMAKE_PREFIX_PATH}")
+find_package(easy_profiler REQUIRED)
+
 target_link_libraries(gravity PRIVATE
 	dependency_entt
 	dependency_fmt
@@ -40,6 +45,7 @@ target_link_libraries(gravity PRIVATE
 	dependency_imgui
 	stb_image
 	utils
+	easy_profiler
 	$<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:m>)
 
 if(BUILD_SHARED_LIBS)

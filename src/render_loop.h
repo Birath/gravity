@@ -40,6 +40,7 @@ private:
 	uint64_t clock_frequency{};
 	float clock_interval{};
 	uint64_t tick_interval{};
+	float tick_delta_time{};
 	uint64_t min_frame_interval{};
 	uint64_t max_ticks_per_frame{};
 	uint64_t latest_tick_time{};

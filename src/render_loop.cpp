@@ -14,8 +14,9 @@ render_loop::render_loop(renderer_options const options)
 	: window{nullptr}
 	, context{nullptr}
 	, clock_frequency{SDL_GetPerformanceFrequency()}
-	, clock_interval{0}
-	, tick_interval{20}
+	, clock_interval{1.0f / clock_frequency}
+	, tick_interval{clock_frequency / options.tick_rate}
+	, tick_delta_time{tick_interval * clock_interval}
 	, min_frame_interval{0}
 	, max_ticks_per_frame{0}
 	, latest_tick_time{0}
@@ -25,8 +26,6 @@ render_loop::render_loop(renderer_options const options)
 	, max_fps{options.max_fps}
 	, fps_count{0}
 	, tick_count{0} {
-	clock_interval = 1.0f / clock_frequency;
-	tick_interval = clock_frequency / options.tick_rate;
 	max_ticks_per_frame = (options.tick_rate <= options.min_fps) ? 1 : static_cast<uint64_t>(options.tick_rate / options.min_fps);
 	min_frame_interval = max_fps == 0.0 ? 0 : static_cast<uint64_t>(round(clock_frequency / max_fps));
 }
@@ -42,6 +41,36 @@ render_loop::~render_loop() {
 
 	SDL_Quit();
 }
+
+void GLAPIENTRY
+MessageCallback( GLenum source,
+	GLenum type,
+	GLuint id,
+	GLenum severity,
+	GLsizei length,
+	const GLchar* message,
+	const void* userParam )
+{
+	(void)source;
+	(void)id;
+	(void)length;
+	(void)userParam;
+	auto severity_name{std::string{}};
+	switch (severity) {
+		case GL_DEBUG_SEVERITY_LOW: severity_name = "LOW"; break;
+		case GL_DEBUG_SEVERITY_MEDIUM: severity_name = "MEDIUM"; break;
+		case GL_DEBUG_SEVERITY_HIGH: severity_name = "HIGH"; break;
+		case GL_DEBUG_SEVERITY_NOTIFICATION: severity_name = "NOTIFICATION"; return;
+		default: severity_name = "UNKNOWN";
+	}
+	fmt::print(stderr, "GL CALLBACK: {} type = {}, severity = {}, message = {}\n",
+		( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+		type, severity_name, message);
+//	fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = %s, message = %s\n",
+//		( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+//		type, severity, message );
+}
+
 
 auto render_loop::init() -> bool {
 	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -102,7 +131,10 @@ auto render_loop::init() -> bool {
 		fmt::print(stderr, "Failed to initialize GLEW: {}\n", glewGetErrorString(glewError));
 		return false;
 	}
-
+// During init, enable debug output
+	glEnable              ( GL_DEBUG_OUTPUT );
+	glDebugMessageCallback( MessageCallback, 0 );
+	
 	start_time = SDL_GetPerformanceCounter();
 	latest_tick_time = start_time;
 	latest_frame_time = start_time;
@@ -150,6 +182,12 @@ auto render_loop::loop(world& world, renderer& renderer) -> bool {
 					}
 					break;
 				}
+				case SDL_WINDOWEVENT:
+					switch(e.window.event) {
+						case SDL_WINDOWEVENT_RESIZED: {
+							renderer.resize(e.window.data1, e.window.data2);
+						}
+					}
 
 				default: break;
 			}
@@ -163,7 +201,7 @@ auto render_loop::loop(world& world, renderer& renderer) -> bool {
 		}
 		while (ticks-- > 0) {
 			++tick_count;
-			world.tick();
+			world.tick(tick_delta_time);
 		}
 		auto const elapsed_time = (current_time - start_time) * clock_interval;
 		auto const delta_time = time_since_last_frame * clock_interval;

@@ -6,11 +6,13 @@
 
 #include <glm/glm.hpp> // vec3, vec2
 #include <utility>
+#include <unordered_map>
 
 namespace gravity::shape {
 
 auto constexpr  max_sphere_resolution{25};
 auto constexpr  min_sphere_resolution{2};
+
 
 auto create_face(glm::vec3 const normal, unsigned int resolution) -> mesh {
 	auto const axis_a{glm::vec3(normal.y, normal.z, normal.x)};
@@ -42,7 +44,12 @@ auto create_face(glm::vec3 const normal, unsigned int resolution) -> mesh {
 	return mesh{std::move(triangles), std::move(vertices)};
 }
 
+static auto faces{std::unordered_map<unsigned int, std::vector<mesh>>{}};
+
 auto generate_faces(unsigned int resolution) -> std::vector<mesh> {
+	if (faces.contains(resolution)) {
+		return faces[resolution];
+	}
 	auto meshes{std::vector<mesh>{}};
 
 	auto normals = std::vector<glm::vec3>{
@@ -58,6 +65,8 @@ auto generate_faces(unsigned int resolution) -> std::vector<mesh> {
 		auto mesh{create_face(glm::normalize(normal), resolution)};
 		meshes.emplace_back(mesh);
 	}
+
+	faces[resolution] = meshes;
 
 	return meshes;
 }
@@ -77,12 +86,12 @@ auto create_plane() -> model {
 	return model{std::move(meshes)};
 }
 
-auto create_sphere(int resolution) -> model {
+auto create_sphere(int resolution, float radius) -> model {
 	auto sphere_meshes{generate_faces(resolution)};
 
 	for (auto&& mesh : sphere_meshes) {
 		for (auto&& ver : mesh.vertices) {
-			ver.position = glm::normalize(ver.position);
+			ver.position = glm::normalize(ver.position) * radius;
 		}
 		mesh.generate_buffer();
 	}
@@ -90,13 +99,13 @@ auto create_sphere(int resolution) -> model {
 	return model{std::move(sphere_meshes)};
 }
 
-auto regenerate_sphere(model& sphere, int new_resolution) -> void {
+auto regenerate_sphere(model& sphere, int new_resolution, float radius) -> void {
 	auto new_meshes{generate_faces(new_resolution)};
 	auto combination{std::vector<std::pair<mesh, mesh>>{}};
 
 	for(size_t i{0}; i < new_meshes.size(); ++i) {
 		for (auto&& ver: new_meshes[i].vertices) {
-			ver.position = glm::normalize(ver.position);
+			ver.position = glm::normalize(ver.position) * radius;
 		}
 		sphere.meshes[i].update_buffer(std::move(new_meshes[i].indices), std::move(new_meshes[i].vertices));
 	}

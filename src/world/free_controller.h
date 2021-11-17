@@ -14,9 +14,10 @@ class free_controller {
     auto handle_mouse(SDL_MouseMotionEvent const& event) -> void;
     auto handle_keyboard(SDL_KeyboardEvent const& event) -> void;
     auto update(float elapsed_time, float delta_time) -> void;
-
+    [[nodiscard]] auto view_position(float offset = 0.0f) const -> glm::vec3;
     glm::vec3 const up;
     glm::mat4 view;
+    
     private:
 
     float yaw{};
@@ -24,9 +25,10 @@ class free_controller {
     bool first_mouse{true};
     glm::vec2 last_mouse_pos{};
 
+    glm::vec3 forward{};
     glm::vec3 position{};
     glm::vec3 velocity{};
-    float speed{1};
+    float speed{5};
     
 };
 } // namespace gravity

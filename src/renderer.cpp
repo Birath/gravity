@@ -9,15 +9,15 @@ namespace gravity {
 
 renderer::renderer()
 	: default_shader{std::filesystem::path{"assets/shaders/default.vert"}, std::filesystem::path{"assets/shaders/default.frag"}}
-	, camera{90, 800.f / 600.f, 0.01f, 1000.f} {
+	, camera{90, static_cast<float>(width)/height, 0.01f, 1000.f} {
 		// glEnable(GL_DEPTH_TEST);
 		// glEnable(GL_CULL_FACE);
 		// glCullFace(GL_BACK);
     }
 
-auto renderer::draw_model(model const& model, float elapsed_time, float delta_time) const -> void {
+auto renderer::draw_model(model const& model, glm::vec3 const& position, float elapsed_time, float delta_time) const -> void {
 	auto model_matrix{glm::rotate(
-		glm::translate(glm::mat4{1.f}, glm::vec3{0.f, 0.f, -2.5f}),
+		glm::translate(glm::mat4{1.f}, position),
 		glm::radians(elapsed_time * 100.f),
 		glm::vec3{0.f, 1.f, 0.f})
 	};
@@ -48,7 +48,7 @@ auto renderer::draw_mesh(mesh const& mesh, float elapsed_time, float delta_time)
 }
 
 auto renderer::start_renderer(glm::mat4& render_view) -> void {
-	glViewport(0, 0, 800, 600);
+	glViewport(0, 0, width, height);
 	glClearColor(0.0f, 0.0f, 0.2f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	// glEnable(GL_DEPTH_TEST);
