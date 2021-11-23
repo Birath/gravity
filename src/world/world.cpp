@@ -1,21 +1,27 @@
 #include "world.h"
 
-#include "shape.h"
-#include "gravity_system.h"
 #include "components.h"
+#include "gravity_system.h"
+#include "shape.h"
 
 #include <algorithm>
+#include <cmath>
+#include <filesystem>
 #include <fmt/core.h>
 #include <glm/gtx/norm.hpp>
 #include <imgui.h>
-#include <cmath>
 #include <random>
 
 namespace gravity {
 
 world::world()
-	: registry{} {
-		registry.set<gravity_system::gravity_constant>(10.f);
+	: registry{}
+	, gravity_compute_shader{compute{std::filesystem::path{"assets/shaders/gravity.glsl"}}} {
+	registry.set<gravity_system::gravity_constant>(10.f);
+
+	position_compute_handle = gravity_compute_shader.generate_buffer(100, 2, GL_DYNAMIC_READ);
+	velocity_compute_handle = gravity_compute_shader.generate_buffer(100, 3, GL_DYNAMIC_COPY);
+
 	// auto const test_entity = registry.create();
 	// registry.emplace_or_replace<transform_component>(test_entity, glm::vec3{0.0, 0.0, 0.0});
 	// registry.emplace_or_replace<physics_component>(test_entity, glm::vec3{0.0, 0.0, 0.0});
@@ -28,39 +34,75 @@ world::world()
 }
 
 auto world::tick(float delta_time) -> void {
-	
-	gravity_system::update(registry, delta_time);
+	auto position_view = registry.view<transform_component, physics_component>();
+
+	std::vector<glm::vec4> position_buffer{};
+	std::transform(position_view.begin(), position_view.end(), std::back_inserter(position_buffer), 
+	[&registry = registry](entt::entity entity) {
+		auto const pos = registry.get<transform_component>(entity).position;
+		auto const mass = registry.get<physics_component>(entity).mass;
+		return glm::vec4{pos.x, pos.y, pos.z, mass};
+	});
+
+	std::vector<glm::vec4> velocity_buffer{position_buffer.size(), glm::vec4{}};
+	// position_compute_handle = gravity_compute_shader.generate_buffer(position_buffer.size() * sizeof(compute_vec3<float>), 2, GL_DYNAMIC_READ);
+	// velocity_compute_handle = gravity_compute_shader.generate_buffer(position_buffer.size() * sizeof(compute_vec3<float>), 3, GL_DYNAMIC_COPY);
+	gravity_compute_shader.regenerate_buffer(position_buffer, position_compute_handle);
+	gravity_compute_shader.regenerate_buffer(velocity_buffer, velocity_compute_handle);
+
+	auto success = gravity_compute_shader.upload(position_buffer, position_compute_handle);
+	if (!success) {
+		fmt::print(stderr, "Failed to upload position buffer to GPU\n");
+	}
+	auto const buffer_size{static_cast<unsigned int>(position_buffer.size())};
+	gravity_compute_shader.dispatch(std::max(buffer_size / 32, 1u), 1, 1);
+	success = gravity_compute_shader.read(velocity_buffer, velocity_compute_handle);
+	if (!success) {
+		fmt::print(stderr, "Failed to read velocity buffer from GPU\n");
+	}
+	int i{0};
+	for (auto [entity, transform, physics] : position_view.each()) {
+		auto new_velocity{velocity_buffer[i++]};
+		// physics.velocity += glm::vec3{new_velocity.x, new_velocity.y, new_velocity.z};
+		registry.patch<physics_component>(entity, [new_velocity, delta_time](auto& p) {
+			p.velocity += glm::vec3{new_velocity.x, new_velocity.y, new_velocity.z} * delta_time;
+		});
+		auto velocity = physics.velocity;
+		registry.patch<transform_component>(entity, [velocity, delta_time](auto& trans) {
+			trans.position += velocity * delta_time;
+		});
+	}
+
+	// gravity_system::update(registry, delta_time);
 
 	auto sphere_view = registry.view<const transform_component, sphere_component, renderable>(entt::exclude<deletion_component>);
 
 	std::vector<entt::entity> marked_for_deletion{};
-	
-	for (auto [entity, transform, sphere, renderable] : sphere_view.each()) {
 
-		for (auto [entity_other, transform_other, sphere_other, renderable_other] : sphere_view.each()) {
-			if (entity != entity_other) {
-				auto const distance{glm::distance2(transform.position, transform_other.position)};
-				if (distance < (sphere.radius + sphere_other.radius)) {
-					sphere.radius = std::cbrtf(std::powf(sphere.radius, 3.f) + std::powf(sphere_other.radius, 3.f));
-					sphere.resolution =  std::max(sphere.resolution, sphere_other.resolution);
-					auto const name1{registry.get<name_component>(entity).name};
-					auto const name2{registry.get<name_component>(entity_other).name};
-					// fmt::print("NAME1 {}, NAME2 {}: SIZE: {}\n", name1, name2, renderable.model.meshes.size());
-					shape::regenerate_sphere(renderable.model, sphere.resolution, sphere.radius);
-					auto& physics = registry.get<physics_component>(entity);
-					auto& physics_other = registry.get<physics_component>(entity_other);
-					physics.mass += physics_other.mass;
-					// physics.velocity += physics_other.velocity;
-					// registry.emplace<physics_component>(entity, glm::vec3{0.f}, sphere.radius * 2);
-					registry.emplace_or_replace<deletion_component>(entity_other);
-					// fmt::print("DESTROYED ENTITY: {}\n", name2);
-				}
-			}
-		}
-	}
-	auto destroy_view = registry.view<deletion_component>();
-	registry.destroy(destroy_view.begin(), destroy_view.end());
-	
+	// for (auto [entity, transform, sphere, renderable] : sphere_view.each()) {
+	// 	for (auto [entity_other, transform_other, sphere_other, renderable_other] : sphere_view.each()) {
+	// 		if (entity != entity_other) {
+	// 			auto const distance{glm::distance2(transform.position, transform_other.position)};
+	// 			if (distance < (sphere.radius + sphere_other.radius)) {
+	// 				sphere.radius = std::cbrtf(std::powf(sphere.radius, 3.f) + std::powf(sphere_other.radius, 3.f));
+	// 				sphere.resolution = std::max(sphere.resolution, sphere_other.resolution);
+	// 				auto const name1{registry.get<name_component>(entity).name};
+	// 				auto const name2{registry.get<name_component>(entity_other).name};
+	// 				// fmt::print("NAME1 {}, NAME2 {}: SIZE: {}\n", name1, name2, renderable.model.meshes.size());
+	// 				shape::regenerate_sphere(renderable.model, sphere.resolution, sphere.radius);
+	// 				auto& physics = registry.get<physics_component>(entity);
+	// 				auto& physics_other = registry.get<physics_component>(entity_other);
+	// 				physics.mass += physics_other.mass;
+	// 				// physics.velocity += physics_other.velocity;
+	// 				// registry.emplace<physics_component>(entity, glm::vec3{0.f}, sphere.radius * 2);
+	// 				registry.emplace_or_replace<deletion_component>(entity_other);
+	// 				// fmt::print("DESTROYED ENTITY: {}\n", name2);
+	// 			}
+	// 		}
+	// 	}
+	// }
+	// auto destroy_view = registry.view<deletion_component>();
+	// registry.destroy(destroy_view.begin(), destroy_view.end());
 }
 
 auto world::update(float elapsed_time, float delta_time) -> void {
@@ -107,10 +149,8 @@ auto world::update(float elapsed_time, float delta_time) -> void {
 		registry.emplace<transform_component>(planet, glm::vec3{0.f});
 		auto& moon_transform = registry.emplace<transform_component>(moon, glm::vec3{10.f, 0.f, 0.f});
 
-		auto const init_velocity{std::sqrt(
-			registry.ctx<const gravity_system::gravity_constant>().value *
-			(planet_physics.mass + 1 / moon_physics.mass) / moon_transform.position.x
-		)};
+		auto const init_velocity{
+			std::sqrt(registry.ctx<const gravity_system::gravity_constant>().value * (planet_physics.mass + 1 / moon_physics.mass) / moon_transform.position.x)};
 		moon_physics.velocity.z = init_velocity;
 
 		auto sphere{shape::create_sphere(15, 0.5f)};
@@ -119,7 +159,6 @@ auto world::update(float elapsed_time, float delta_time) -> void {
 		auto planet_sphere{shape::create_sphere(15, 5.f)};
 		registry.emplace_or_replace<renderable>(planet, planet_sphere);
 		registry.emplace_or_replace<sphere_component>(planet, 15, 5.f);
-
 	}
 
 	if (ImGui::Button("Spawn Asteroids")) {
@@ -135,7 +174,7 @@ auto world::update(float elapsed_time, float delta_time) -> void {
 		std::random_device r;
 		std::default_random_engine el{r()};
 		std::uniform_real_distribution<float> pos_dist(15.f, 25.f);
-		for(size_t i {0}; i < asteroid_amount ; ++i) {
+		for (size_t i{0}; i < asteroid_amount; ++i) {
 			auto const asteroid = registry.create();
 			auto& asteroid_physics = registry.emplace<physics_component>(asteroid, glm::vec3{0.f}, 0.01f);
 			auto& asteroid_transform = registry.emplace<transform_component>(asteroid, glm::vec3{pos_dist(el), 0.f, pos_dist(el)});
@@ -143,13 +182,11 @@ auto world::update(float elapsed_time, float delta_time) -> void {
 			auto const init_velocity_direction{glm::normalize(glm::cross(-asteroid_transform.position, glm::vec3{0.f, 1.f, 0.f}))};
 
 			auto const init_velocity{std::sqrt(
-				registry.ctx<const gravity_system::gravity_constant>().value *
-				(planet_physics.mass + 1 / asteroid_physics.mass) / glm::length(asteroid_transform.position)
-			)};
+				registry.ctx<const gravity_system::gravity_constant>().value * (planet_physics.mass + 1 / asteroid_physics.mass) / glm::length(asteroid_transform.position))};
 			asteroid_physics.velocity = init_velocity_direction * init_velocity;
 			auto asteroid_sphere{shape::create_sphere(3, 0.1f)};
 			registry.emplace<renderable>(asteroid, asteroid_sphere);
-			
+
 			registry.emplace_or_replace<sphere_component>(asteroid, 3, 0.1f);
 			registry.emplace<name_component>(asteroid, "ASTEROID ");
 		}

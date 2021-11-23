@@ -16,7 +16,7 @@ public:
 	explicit shader_program(std::filesystem::path const& vert_path, std::filesystem::path const& frag_path);
     
 	~shader_program() noexcept;
-    auto load_computer_shader(std::filesystem::path const& path) -> void;
+    auto load_compute_shader(std::filesystem::path const& path) -> void;
     auto use() const -> void;
     template<typename T>
     auto upload_uniform(std::string const& name, T const& value) const -> void;
@@ -30,7 +30,7 @@ private:
 	GLuint handle{0};
     GLuint vertex_shader{0};
     GLuint fragment_shader{0};
-    GLuint computer_shader{0};
+    GLuint compute_shader{0};
 
 };
 

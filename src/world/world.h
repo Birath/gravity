@@ -6,6 +6,7 @@
 
 #include "renderer.h"
 #include "model.h"
+#include "compute.h"
 #include "free_controller.h"
 
 namespace gravity {
@@ -15,6 +16,11 @@ class world {
 	glm::mat4 view{};
 	size_t sphere_resolution{5};
 	int asteroid_amount{2};
+
+	unsigned int position_compute_handle;
+	unsigned int velocity_compute_handle;
+	compute gravity_compute_shader;
+
 public:
 	world();
 	~world() = default;

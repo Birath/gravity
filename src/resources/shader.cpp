@@ -31,19 +31,14 @@ shader_program::shader_program(std::filesystem::path const& vert_path, std::file
 }
 
 shader_program::~shader_program() {
-	if (vertex_shader != 0) {
-		glDeleteShader(vertex_shader);
-	}
-	if (fragment_shader != 0) {
-		glDeleteShader(fragment_shader);
-	}
+	
 	glDeleteProgram(handle);
 	vertex_shader = 0;
 	fragment_shader = 0;
 	handle = 0;
 }
 
-auto shader_program::load_computer_shader(std::filesystem::path const& path) ->  void {
+auto shader_program::load_compute_shader(std::filesystem::path const& path) ->  void {
     if (!glIsProgram(handle)) {
         throw std::runtime_error{"Shader program is not created"};
     }
@@ -53,7 +48,7 @@ auto shader_program::load_computer_shader(std::filesystem::path const& path) -> 
         fmt::print(stderr, "Shader {} is already linked\n", handle);
         return;
     }
-    computer_shader = load_shader(path, GL_COMPUTE_SHADER);
+    compute_shader = load_shader(path, GL_COMPUTE_SHADER);
     glLinkProgram(handle);
     glUseProgram(handle);
 }
