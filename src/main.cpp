@@ -10,7 +10,9 @@ auto main(int argc, char* argv[]) -> int {
 	(void)argc;
 	(void)argv;
 	fmt::print("Initalizing ...\n");
-	profiler::startListen();
+	#ifdef EASY_PROFILER
+		profiler::startListen();
+	#endif
 	gravity::renderer_options options{144.0, 60};
 
 

@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 project("Gravity" LANGUAGES CXX C)
 
-
 option(BUILD_SHARED_LIBS "Build dependencies as shared libraries" OFF)
 option(USE_CLANG_TIDY "Use clang-tidy for static analysis warnings" OFF)
 option(USE_INCLUDE_WHAT_YOU_USE "Use include-what-you-use for include warnings" OFF)
@@ -19,6 +18,7 @@ target_compile_options(gravity PRIVATE
 	$<$<CXX_COMPILER_ID:GNU>:     -Wall -Wextra   -Wpedantic      -Werror                     $<$<CONFIG:Debug>:-g>   $<$<NOT:$<CONFIG:Debug>>:-O3>>
 	$<$<CXX_COMPILER_ID:Clang>:   -Wall -Wextra   -Wpedantic      -Werror                     $<$<CONFIG:Debug>:-g>   $<$<NOT:$<CONFIG:Debug>>:-O3>>
 	$<$<CXX_COMPILER_ID:MSVC>:    /W3             /permissive-    /WX     /wd4996     /utf-8  $<$<CONFIG:Debug>:/Od>  $<$<NOT:$<CONFIG:Debug>>:/Ot>>)
+target_compile_definitions(gravity PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 
 if(USE_CLANG_TIDY)
     find_program(CLANG_TIDY NAMES clang-tidy REQUIRED)
@@ -38,9 +38,10 @@ endif()
 
 add_subdirectory(dependencies)
 add_subdirectory(utils)
-
-set(CMAKE_PREFIX_PATH "D:/Downloads/easy_profiler-v2.1.0-msvc15-win64/lib/cmake/easy_profiler;${CMAKE_PREFIX_PATH}")
 find_package(easy_profiler REQUIRED)
+if (USE_PROFILER)
+	target_compile_definitions(gravity PRIVATE EASY_PROFILER)
+endif()
 
 target_link_libraries(gravity PRIVATE
 	dependency_entt

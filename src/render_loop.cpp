@@ -68,14 +68,11 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum se
 		type,
 		severity_name,
 		message);
-	//	fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = %s, message = %s\n",
-	//		( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
-	//		type, severity, message );
 }
 
 auto render_loop::init() -> bool {
 	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-		fmt::print(stderr, "Failed to initalize SDL.\n");
+		fmt::print(stderr, "Failed to initialize SDL.\n");
 		fmt::print(stderr, "Error {}: \n", SDL_GetError());
 		return false;
 	}
@@ -115,12 +112,10 @@ auto render_loop::init() -> bool {
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
 	(void)io;
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
-	//ImGui::StyleColorsClassic();
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplSDL2_InitForOpenGL(window, context);
@@ -133,14 +128,16 @@ auto render_loop::init() -> bool {
 		return false;
 	}
 	// During init, enable debug output
+	#ifdef DEBUG
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback(MessageCallback, nullptr);
+	#endif
 
 	start_time = SDL_GetPerformanceCounter();
 	latest_tick_time = start_time;
 	latest_frame_time = start_time;
 	latest_fps_count_time = start_time;
-	fmt::print("Intialized renderer succcessfully.\n");
+	fmt::print("Intialized renderer successfully.\n");
 	return true;
 }
 
@@ -210,7 +207,9 @@ auto render_loop::loop(world& world, renderer& renderer) -> bool {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
+		#ifdef DEBUG
 		ImGui::ShowDemoWindow();
+		#endif
 		world.update(elapsed_time, delta_time);
 		renderer.start_renderer(world.controller.view);
 
