@@ -23,7 +23,6 @@ world::world()
 	, position_compute_handle{0}
 	, velocity_compute_handle{0}
 	, random_engine{r()}
-	, asteroid_model{shape::create_sphere(3, 0.1f)}
 	{
 	registry.set<gravity_system::gravity_constant>(10.f);
 	
@@ -74,6 +73,7 @@ auto world::tick(float delta_time) -> void {
 
 	// gravity_compute_shader.read(velocity_buffer, velocity_compute_handle);
 	EASY_END_BLOCK;
+
 	EASY_BLOCK("POSITION SHADER");
 	position_compute_shader.use();
 	position_compute_shader.upload_uniform("delta_time", delta_time);
@@ -82,6 +82,7 @@ auto world::tick(float delta_time) -> void {
 	position_buffer.resize(buffer_size);
 	position_compute_shader.read(position_buffer, position_compute_handle);
 	EASY_END_BLOCK;
+
 	// gravity_compute_shader.read(velocity_buffer, velocity_compute_handle);
 	auto position_view = registry.view<transform_component, physics_component>();
 	int i{0};
@@ -221,7 +222,8 @@ auto world::update(float elapsed_time, float delta_time) -> void {
 			registry.emplace<renderable>(asteroid, asteroid_sphere);
 
 			registry.emplace_or_replace<sphere_component>(asteroid, 3, 0.1f);
-			registry.emplace<name_component>(asteroid, "ASTEROID ");
+			registry.emplace<name_component>(asteroid, "ASTEROID");
+			registry.emplace<instanced_component>(asteroid);
 		}
 		std::vector<glm::vec4> velocity_buffer{};
 		auto physics = registry.view<const physics_component>();
@@ -257,13 +259,13 @@ auto world::draw(renderer& renderer, float elapsed_time, float delta_time) const
 	EASY_FUNCTION();
 	(void)delta_time;
 	// https://learnopengl.com/Advanced-OpenGL/Instancing
-	auto view = registry.view<const transform_component>();
+	auto instanced_view = registry.view<const transform_component, const instanced_component>();
 	// for (auto&& [entity, renderable, position] : view.each()) {
 	// 	renderer.draw_model(renderable.model, {position.position}, elapsed_time, delta_time);
 	// }
 	std::vector<glm::mat4> matrices{};
 	EASY_BLOCK("CREATE MATRICES");
-	view.each([&](auto entity, auto const& transform) {
+	instanced_view.each([&](auto entity, auto const& transform) {
 		(void)entity;
 		matrices.emplace_back(glm::translate(glm::mat4{1.f}, transform.position));
 		// matrices.emplace_back(glm::rotate(glm::translate(glm::mat4{1.f}, transform.position), glm::radians(elapsed_time * 100.f), glm::vec3{0.f, 1.f, 0.f}));
@@ -274,7 +276,13 @@ auto world::draw(renderer& renderer, float elapsed_time, float delta_time) const
 	// 	return glm::translate(glm::mat4{1.f}, transform.position);
 	// });
 	std::span<glm::mat4> matrices_span{matrices};
-	renderer.draw_model_instanced(asteroid_model, matrices_span);
+	renderer.draw_asteroid_instanced(matrices_span);
+
+	auto view = registry.view<const transform_component, const renderable>(entt::exclude<instanced_component>);
+	renderer.start_non_instanced();
+	for (auto&& [entity, transform, renderable] : view.each()) {
+		renderer.draw_model(renderable.model, transform.position, elapsed_time, delta_time);
+	}
 }
 
 auto world::handle_event(SDL_Event const& e) -> void {

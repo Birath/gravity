@@ -33,4 +33,6 @@ struct name_component {
 	std::string_view name{};
 };
 
+struct instanced_component {};
+
 #endif

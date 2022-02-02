@@ -7,6 +7,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <filesystem>
+#include <easy/profiler.h>
+#include <unordered_map>
 
 namespace gravity {
 
@@ -24,25 +26,42 @@ public:
 	auto use() const -> void;
 
 	template <typename T>
-	auto upload_uniform(std::string const& name, T const& value) const -> void {
-		auto location = glGetUniformLocation(handle, name.c_str());
+	auto upload_uniform(std::string const& name, T const& value) -> void {
+		auto const location = get_uniform_location(name);
 		if constexpr (std::is_integral_v<T>) {
-			glUniform1i(glGetUniformLocation(handle, name.c_str()), value);
+			glUniform1i(location, value);
 		} else if constexpr (std::is_floating_point_v<T>) {
 			glUniform1f(location, value);
 		}
 	}
 
 	template <>
-	auto upload_uniform(std::string const& name, glm::mat4 const& value) const -> void {
-		auto const location = glGetUniformLocation(handle, name.c_str());
-		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
+	auto upload_uniform(std::string const& name, glm::mat4 const& value)  -> void {
+		glUniformMatrix4fv(get_uniform_location(name), 1, GL_FALSE, glm::value_ptr(value));
 	}
 
 	template <>
-	auto upload_uniform(std::string const& name, glm::vec3 const& value) const -> void {
-		glUniform3fv(glGetUniformLocation(handle, name.c_str()), 1, glm::value_ptr(value));
+	auto upload_uniform(std::string const& name, glm::vec3 const& value) -> void {
+		glUniform3fv(get_uniform_location(name), 1, glm::value_ptr(value));
 	}
+
+	template <typename T>
+	auto upload_uniform_by_location(int location, T const& value) const -> void {
+		if constexpr (std::is_integral_v<T>) {
+			glUniform1i(location, value);
+		} else if constexpr (std::is_floating_point_v<T>) {
+			glUniform1f(location, value);
+		}
+	}
+	template <>
+	auto upload_uniform_by_location(int location, glm::mat4 const& value) const -> void {
+		EASY_FUNCTION();
+		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
+	}
+
+	// caches the found location
+	[[nodiscard]] auto get_attrib_location(std::string const& name) -> GLint;
+	[[nodiscard]] auto get_uniform_location(std::string const& name) -> GLint;
 	
 
 private:
@@ -55,6 +74,8 @@ private:
 	GLuint vertex_shader{0};
 	GLuint fragment_shader{0};
 	GLuint compute_shader{0};
+	std::unordered_map<std::string, GLint> attrib_name_to_location{};
+	std::unordered_map<std::string, GLint> uniform_name_to_location{};
 };
 
 } // namespace gravity

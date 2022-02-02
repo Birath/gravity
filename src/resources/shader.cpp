@@ -65,7 +65,27 @@ auto shader_program::use() const -> void {
 	glUseProgram(handle);
 }
 
+auto shader_program::get_attrib_location(std::string const& name) -> GLint {
+	if (attrib_name_to_location.contains(name)) {
+		return attrib_name_to_location.at(name);
+	}
+	auto const location{glGetAttribLocation(handle, name.c_str())};
+	if (location != -1) {
+		attrib_name_to_location[name] = location;
+	}
+	return location;
+}
 
+auto shader_program::get_uniform_location(std::string const& name) -> GLint {
+	if (uniform_name_to_location.contains(name)) {
+		return uniform_name_to_location.at(name);
+	}
+	auto const location{glGetUniformLocation(handle, name.c_str())};
+	if (location != -1) {
+		uniform_name_to_location[name] = location;
+	}
+	return location;
+}
 
 auto shader_program::load_shader(std::filesystem::path const& file_name, int shader_type) const -> GLuint {
 	GLuint shader_id{glCreateShader(shader_type)};

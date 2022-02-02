@@ -28,10 +28,7 @@ class world {
 	int asteroid_amount{2};
 
 	float asteroid_inner_radius{15.f};
-	float asteroid_outer_radius{25.f};
-
-	model asteroid_model;
-	
+	float asteroid_outer_radius{25.f};	
 
 public:
 	world();
