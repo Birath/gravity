@@ -24,40 +24,47 @@ public:
 	auto generate_buffer(size_t size, unsigned int binding, GLenum usage) -> unsigned int;
 	
 	template<typename T>
+	auto upload_uniform(std::string const& name, T const& value) -> void {
+		compute_shader.upload_uniform(name, value);
+	}
+
+	template<typename T>
 	auto regenerate_buffer(std::vector<T> const& buffer, unsigned int handle) -> void {
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, handle);
+		GLint usage;
+		glGetBufferParameteriv(GL_SHADER_STORAGE_BUFFER, GL_BUFFER_USAGE, &usage);
 		if (buffer.size() * sizeof(T) > buffer_size()) {
 			fmt::print("Regenerating buffer {}\n", handle);
-			glBufferData(GL_SHADER_STORAGE_BUFFER, buffer.size() * sizeof(T), &buffer[0], GL_DYNAMIC_READ);
+			glBufferData(GL_SHADER_STORAGE_BUFFER, buffer.size() * sizeof(T), &buffer[0], usage);
 		}
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	}
 
-	// Size of the currently bound buffer
-	auto buffer_size() -> size_t;
+	auto bind_buffer(unsigned int handle, unsigned int binding) -> void;
 
+	// Size of the currently bound buffer
+	auto buffer_size() const -> size_t;
+	auto use() -> void;
 	template <typename T>
-	[[nodiscard]] auto upload(std::vector<T> const& buffer, unsigned int handle) -> bool {
-        if (buffer.empty()) return false;
+	auto upload(std::vector<T> const& buffer, unsigned int handle) -> void {
+        if (buffer.empty()) return;
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, handle);
 		if (buffer.size() * sizeof(T) > buffer_size()) {
 			fmt::print("Buffer to upload is larger than storage buffer {}\n", handle);
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-			return false;
+			return;
 		} else {
 			glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, buffer.size() * sizeof(T), &buffer[0]);
 		}
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-		return glGetError() != GL_NO_ERROR;
 	}
 
 	template <typename T>
-	[[nodiscard]] auto read(std::vector<T>& buffer, unsigned int handle) -> bool {
-        if (buffer.empty()) return false;
+	auto read(std::vector<T>& buffer, unsigned int handle) -> void {
+        if (buffer.empty()) return;
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, handle);
 		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, buffer.size() * sizeof(T), &buffer[0]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-		return glGetError() != GL_NO_ERROR;
 	}
 
 	auto dispatch(unsigned int x, unsigned int y, unsigned int z) -> void;

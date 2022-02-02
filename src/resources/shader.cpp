@@ -50,31 +50,22 @@ auto shader_program::load_compute_shader(std::filesystem::path const& path) ->  
     }
     compute_shader = load_shader(path, GL_COMPUTE_SHADER);
     glLinkProgram(handle);
+	glGetProgramiv(handle, GL_LINK_STATUS, &val);
+	if (val == GL_FALSE) {
+        fmt::print(stderr, "Shader {} failed to link\n", handle);
+    }
     glUseProgram(handle);
+	print_info();
+	if (!glIsProgram(handle)) {
+        throw std::runtime_error{"Shader program is not created"};
+    }
 }
 
 auto shader_program::use() const -> void {
 	glUseProgram(handle);
 }
 
-template <typename T>
-auto shader_program::upload_uniform(std::string const& name, T const& value) const -> void {
-	if constexpr (std::is_integral_v<T>) {
-		glUniform1i(glGetUniformLocation(handle, name.c_str()), value);
-	} else if constexpr (std::is_floating_point_v<T>) {
-		glUniform1f(glGetUniformLocation(handle, name.c_str()), value);
-	}
-}
 
-template <>
-auto shader_program::upload_uniform(std::string const& name, glm::mat4 const& value) const -> void {
-	glUniformMatrix4fv(glGetUniformLocation(handle, name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
-}
-
-template <>
-auto shader_program::upload_uniform(std::string const& name, glm::vec3 const& value) const -> void {
-	glUniform3fv(glGetUniformLocation(handle, name.c_str()), 1, glm::value_ptr(value));
-}
 
 auto shader_program::load_shader(std::filesystem::path const& file_name, int shader_type) const -> GLuint {
 	GLuint shader_id{glCreateShader(shader_type)};
@@ -107,6 +98,16 @@ auto shader_program::print_shader_info(GLuint shader, std::filesystem::path cons
 	}
 }
 
-auto shader_program::print_info() const -> void {}
-
+auto shader_program::print_info() const -> void {
+	GLint log_length;
+	glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &log_length);
+	if (log_length > 2) {
+		fmt::print(stderr, "Shader program {}:\n", handle);
+		std::string info_log{};
+		info_log.resize(log_length);
+		glGetProgramInfoLog(handle, log_length, nullptr, info_log.data());
+		fmt::print(stderr, "{}\n", info_log);
+	}
+}
+	
 } // namespace gravity

@@ -6,6 +6,8 @@ option(BUILD_SHARED_LIBS "Build dependencies as shared libraries" OFF)
 option(USE_CLANG_TIDY "Use clang-tidy for static analysis warnings" OFF)
 option(USE_INCLUDE_WHAT_YOU_USE "Use include-what-you-use for include warnings" OFF)
 
+option(USE_PROFILER "Build with profiling enabled" OFF)
+
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS "src/*.cpp")
 
 
@@ -20,12 +22,18 @@ target_compile_options(gravity PRIVATE
 
 if(USE_CLANG_TIDY)
     find_program(CLANG_TIDY NAMES clang-tidy REQUIRED)
-    set_property(TARGET gravity PROPERTY C_CLANG_TIDY ${CLANG_TIDY} "-header-filter=src/")
+    set_property(TARGET gravity PROPERTY CXX_CLANG_TIDY ${CLANG_TIDY} "-header-filter=src/")
+	get_target_property(use-tidy gravity CXX_CLANG_TIDY)
+	message(STATUS "CXX_CLANG_TIDY: ${use-tidy}")
+	set_target_properties(gravity PROPERTIES
+		VS_GLOBAL_RunCodeAnalysis true
+		VS_GLOBAL_EnableClangTidyCodeAnalysis true
+	)
 endif()
 
 if(USE_INCLUDE_WHAT_YOU_USE)
     find_program(INCLUDE_WHAT_YOU_USE NAMES include-what-you-use REQUIRED)
-    set_property(TARGET gravity PROPERTY C_INCLUDE_WHAT_YOU_USE ${INCLUDE_WHAT_YOU_USE})
+    set_property(TARGET gravity PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${INCLUDE_WHAT_YOU_USE})
 endif()
 
 add_subdirectory(dependencies)
