@@ -11,46 +11,28 @@
 namespace gravity {
 
 render_loop::render_loop(renderer_options const options)
-	: window{nullptr}
-	, context{nullptr}
-	, clock_frequency{SDL_GetPerformanceFrequency()}
+	: clock_frequency{SDL_GetPerformanceFrequency()}
 	, clock_interval{1.0f / clock_frequency}
 	, tick_interval{clock_frequency / options.tick_rate}
 	, tick_delta_time{tick_interval * clock_interval}
-	, min_frame_interval{0}
-	, max_ticks_per_frame{0}
-	, latest_tick_time{0}
-	, latest_frame_time{0}
-	, latest_fps_count_time{0}
-	, start_time{}
-	, max_fps{options.max_fps}
-	, fps_count{0}
-	, tick_count{0} {
+	, min_frame_interval{1} {
 	max_ticks_per_frame = (options.tick_rate <= options.min_fps) ? 1 : static_cast<uint64_t>(options.tick_rate / options.min_fps);
 	min_frame_interval = max_fps == 0.0 ? 0 : static_cast<uint64_t>(round(clock_frequency / max_fps));
 }
 
 render_loop::~render_loop() {
-	if (window) {
+	if (window != nullptr) {
 		SDL_DestroyWindow(window);
 	}
 
-	if (context) {
+	if (context != nullptr) {
 		SDL_GL_DeleteContext(context);
 	}
 
 	SDL_Quit();
 }
 
-void GLAPIENTRY
-MessageCallback( GLenum source,
-	GLenum type,
-	GLuint id,
-	GLenum severity,
-	GLsizei length,
-	const GLchar* message,
-	const void* userParam )
-{
+void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
 	(void)source;
 	(void)id;
 	(void)length;
@@ -63,14 +45,33 @@ MessageCallback( GLenum source,
 		case GL_DEBUG_SEVERITY_NOTIFICATION: severity_name = "NOTIFICATION"; return;
 		default: severity_name = "UNKNOWN";
 	}
-	fmt::print(stderr, "GL CALLBACK: {} type = {}, severity = {}, message = {}\n",
-		( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
-		type, severity_name, message);
-//	fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = %s, message = %s\n",
-//		( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
-//		type, severity, message );
-}
+	auto source_name{std::string{}};
+	switch (source) {
+		case GL_DEBUG_SOURCE_API: source_name = "API"; break;
 
+		case GL_DEBUG_SOURCE_WINDOW_SYSTEM: source_name = "WINDOW SYSTEM"; break;
+
+		case GL_DEBUG_SOURCE_SHADER_COMPILER: source_name = "SHADER COMPILER"; break;
+
+		case GL_DEBUG_SOURCE_THIRD_PARTY: source_name = "THIRD PARTY"; break;
+
+		case GL_DEBUG_SOURCE_APPLICATION: source_name = "APPLICATION"; break;
+
+		case GL_DEBUG_SOURCE_OTHER: source_name = "UNKNOWN"; break;
+
+		default: source_name = "UNKNOWN"; break;
+	}
+	fmt::print(stderr,
+		"GL CALLBACK: {}, source = {}, type = {}, severity = {}, message = {}\n",
+		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+		source_name,
+		type,
+		severity_name,
+		message);
+	//	fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = %s, message = %s\n",
+	//		( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+	//		type, severity, message );
+}
 
 auto render_loop::init() -> bool {
 	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -88,11 +89,11 @@ auto render_loop::init() -> bool {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 1);
-	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, true);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
 
 	window = SDL_CreateWindow("Gravity", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
-	if (!window) {
+	if (window == nullptr) {
 		fmt::print(stderr, "Failed to create SDL window\n");
 		fmt::print(stderr, "Error {}: \n", SDL_GetError());
 		SDL_Quit();
@@ -100,7 +101,7 @@ auto render_loop::init() -> bool {
 	}
 
 	context = SDL_GL_CreateContext(window);
-	if (!context) {
+	if (context == nullptr) {
 		fmt::print(stderr, "Failed to create SDL GL context\n");
 		fmt::print(stderr, "Error {}: \n", SDL_GetError());
 		SDL_DestroyWindow(window);
@@ -131,10 +132,10 @@ auto render_loop::init() -> bool {
 		fmt::print(stderr, "Failed to initialize GLEW: {}\n", glewGetErrorString(glewError));
 		return false;
 	}
-// During init, enable debug output
-	glEnable              ( GL_DEBUG_OUTPUT );
-	glDebugMessageCallback( MessageCallback, 0 );
-	
+	// During init, enable debug output
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(MessageCallback, nullptr);
+
 	start_time = SDL_GetPerformanceCounter();
 	latest_tick_time = start_time;
 	latest_frame_time = start_time;
@@ -166,8 +167,9 @@ auto render_loop::loop(world& world, renderer& renderer) -> bool {
 
 		for (SDL_Event e; SDL_PollEvent(&e) != 0;) {
 			ImGui_ImplSDL2_ProcessEvent(&e);
-			if (e.type == SDL_MOUSEMOTION && !accept_mouse_input)
+			if (e.type == SDL_MOUSEMOTION && !accept_mouse_input) {
 				continue;
+			}
 			world.handle_event(e);
 			switch (e.type) {
 				case SDL_QUIT: return false;
@@ -183,7 +185,7 @@ auto render_loop::loop(world& world, renderer& renderer) -> bool {
 					break;
 				}
 				case SDL_WINDOWEVENT:
-					switch(e.window.event) {
+					switch (e.window.event) {
 						case SDL_WINDOWEVENT_RESIZED: {
 							renderer.resize(e.window.data1, e.window.data2);
 						}

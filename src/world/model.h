@@ -9,7 +9,7 @@ namespace gravity {
 class model {
 
 public:
-    model(std::vector<mesh> const&& meshes);
+    model(std::vector<mesh>&& meshes);
 
     std::vector<mesh> meshes{};
     

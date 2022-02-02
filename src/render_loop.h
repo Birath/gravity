@@ -4,16 +4,17 @@
 #include <SDL.h>
 #include <cstdint>
 #include <functional>
-#include <stddef.h>
+#include <cstddef>
 
 #include "world.h"
 
 namespace gravity {
 
 struct renderer_options {
-	double max_fps;
-	size_t min_fps;
-	size_t tick_rate;
+public:
+	double const max_fps; // NOLINT
+	size_t const min_fps; // NOLINT
+	size_t const tick_rate; // NOLINT
 
 	renderer_options(double max_fps, size_t tick_rate)
 		: max_fps{max_fps}
@@ -25,7 +26,7 @@ class render_loop {
 public:
 	render_loop() = delete;
 	~render_loop() noexcept;
-	explicit render_loop(renderer_options);
+	explicit render_loop(renderer_options opt);
 
 	[[nodiscard]] auto init() -> bool;
 
@@ -35,7 +36,8 @@ private:
 	auto loop(world& world, renderer& renderer) -> bool;
 	auto show_loop_settings_window() -> void;
 	
-
+	static auto show_render_setting_window(renderer& renderer) -> void;
+	
 	SDL_Window* window{};
 	SDL_GLContext context{};
 	uint64_t clock_frequency{};

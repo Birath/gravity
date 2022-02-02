@@ -3,7 +3,7 @@
 
 namespace gravity {
 
-model::model(std::vector<mesh> const&& meshes) : meshes{std::move(meshes)} {}
+model::model(std::vector<mesh>&& meshes) : meshes{std::move(meshes)} {}
 
 
 }
