@@ -208,11 +208,12 @@ auto render_loop::loop(world& world, renderer& renderer) -> bool {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
-		
+		ImGui::ShowDemoWindow();
 		world.update(elapsed_time, delta_time);
 		renderer.start_renderer(world.controller.view);
 
 		show_render_setting_window(renderer);
+		show_loop_settings_window();
 		world.draw(renderer, elapsed_time, delta_time);
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -224,6 +225,15 @@ auto render_loop::loop(world& world, renderer& renderer) -> bool {
 auto render_loop::show_render_setting_window(renderer& renderer) -> void {
 	ImGui::Begin("Render settings");
 	ImGui::Checkbox("Wireframe", &renderer.render_wireframe);
+	ImGui::End();
+}
+
+auto render_loop::show_loop_settings_window() -> void {
+	constexpr uint64_t max_ticks{60};
+	constexpr uint64_t min_ticks{0};
+	ImGui::Begin("Loop settings");
+	ImGui::SliderScalar("Max ticks", ImGuiDataType_U64, &max_ticks_per_frame, &min_ticks, &max_ticks, "%d", 1.f);
+	// ImGui::SliderInt("Max ticks", &max_ticks_per_frame, 0, 60);
 	ImGui::End();
 }
 

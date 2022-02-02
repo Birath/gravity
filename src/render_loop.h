@@ -33,7 +33,8 @@ public:
 
 private:
 	auto loop(world& world, renderer& renderer) -> bool;
-	auto show_render_setting_window(renderer& renderer) -> void;
+	auto show_loop_settings_window() -> void;
+	
 
 	SDL_Window* window{};
 	SDL_GLContext context{};
