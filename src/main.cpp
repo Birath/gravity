@@ -6,7 +6,7 @@
 #include <functional>
 #include <easy/profiler.h>
 
-int main(int argc, char* argv[]) {
+auto main(int argc, char* argv[]) -> int {
 	(void)argc;
 	(void)argv;
 	fmt::print("Initalizing ...\n");
