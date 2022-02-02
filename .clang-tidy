@@ -4,6 +4,7 @@ Checks: "clang-analyzer-*,
          performance-*,
          portability-*,
          readability-*,
+         -misc-non-private-member-variables-in-classes
          -misc-no-recursion,
          -readability-magic-numbers,
          -readability-function-cognitive-complexity,
