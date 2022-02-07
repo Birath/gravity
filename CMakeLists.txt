@@ -46,7 +46,6 @@ endif()
 target_link_libraries(gravity PRIVATE
 	dependency_entt
 	dependency_fmt
-	dependency_FreeType
 	dependency_OpenGL
 	dependency_GLEW
 	dependency_SDL2

@@ -66,22 +66,18 @@ auto renderer::draw_model(model const& model, glm::vec3 const& position, float e
 	}
 }
 
-auto renderer::draw_asteroid_instanced(std::span<glm::mat4 const> const model_matrices) const -> void {
+auto renderer::draw_asteroid_instanced(size_t count) const -> void {
 	(void)rendering_tmp;
 	EASY_FUNCTION();
 
 	instanced_shader.use();
-	EASY_BLOCK("BUFFER", profiler::FORCE_ON);
-
-	glBindBuffer(GL_ARRAY_BUFFER, asteroid_instance_buffer);
-	glBufferData(GL_ARRAY_BUFFER, model_matrices.size_bytes(), model_matrices.data(), GL_STATIC_DRAW);
 	
-	EASY_BLOCK("DRAW", profiler::FORCE_ON);
+	EASY_BLOCK("DRAW INSTANCED", profiler::FORCE_ON);
 	instanced_shader.upload_uniform_by_location(instance_shader_mv_location, camera.get_projection() * view);
 	for (auto&& mesh : asteroid_model.meshes) {
 		EASY_BLOCK("MESH");
 		glBindVertexArray(mesh.vao);
-		glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(mesh.size()), GL_UNSIGNED_INT, nullptr, static_cast<GLsizei>(model_matrices.size()));
+		glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(mesh.size()), GL_UNSIGNED_INT, nullptr, static_cast<GLsizei>(count));
 		glBindVertexArray(0);
 		EASY_END_BLOCK;
 	}
@@ -100,7 +96,7 @@ auto renderer::draw_mesh(mesh const& mesh, float elapsed_time, float delta_time)
 
 auto renderer::start_renderer(glm::mat4& render_view) -> void {
 	glViewport(0, 0, width, height);
-	glClearColor(0.0f, 0.0f, 0.2f, 1.f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	// glEnable(GL_DEPTH_TEST);
 	// glEnable(GL_CULL_FACE);

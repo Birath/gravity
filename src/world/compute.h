@@ -44,6 +44,9 @@ public:
 
 	// Size of the currently bound buffer
 	auto buffer_size() const -> size_t;
+
+	auto clear_buffer(unsigned int handle) -> void;
+
 	auto use() -> void;
 	template <typename T>
 	auto upload(std::vector<T> const& buffer, unsigned int handle) -> void {

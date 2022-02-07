@@ -17,6 +17,5 @@ uniform float gravity_constant;
 void main()
 {
   int invocation_id = int(gl_GlobalInvocationID.x);
-  // positions[invocation_id].xyz += vec3(0.5725, 0.0431, 0.0431) * delta_time;
   positions[invocation_id].xyz += vec3(velocities[invocation_id]) * delta_time;
 }

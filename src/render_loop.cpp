@@ -154,6 +154,7 @@ auto render_loop::loop(world& world, renderer& renderer) -> bool {
 	auto const current_time{SDL_GetPerformanceCounter()};
 	auto const time_since_last_frame{current_time - latest_frame_time};
 	if (current_time > latest_frame_time && time_since_last_frame >= min_frame_interval) {
+		EASY_BLOCK("RENDER LOOP");
 		latest_frame_time = current_time;
 		++fps_count;
 		if (current_time - latest_fps_count_time >= clock_frequency) {
@@ -204,21 +205,28 @@ auto render_loop::loop(world& world, renderer& renderer) -> bool {
 		}
 		auto const elapsed_time = (current_time - start_time) * clock_interval;
 		auto const delta_time = time_since_last_frame * clock_interval;
+		EASY_BLOCK("IMGUI FRAME");
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
+		ImGui::ShowMetricsWindow();
 		#ifdef DEBUG
 		ImGui::ShowDemoWindow();
 		#endif
+		EASY_END_BLOCK;
 		world.update(elapsed_time, delta_time);
 		renderer.start_renderer(world.controller.view);
 
 		show_render_setting_window(renderer);
 		show_loop_settings_window();
 		world.draw(renderer, elapsed_time, delta_time);
+		EASY_BLOCK("IMGUI RENDER");
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		EASY_END_BLOCK;
+		EASY_BLOCK("SWAP WINDOW");
 		SDL_GL_SwapWindow(window);
+		EASY_END_BLOCK;
 	}
 	return true;
 }

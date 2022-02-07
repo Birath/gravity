@@ -28,108 +28,26 @@ world::world()
 	
 	position_compute_handle = gravity_compute_shader.generate_buffer(100, 0, GL_DYNAMIC_COPY);
 	velocity_compute_handle = gravity_compute_shader.generate_buffer(100, 1, GL_DYNAMIC_COPY);
-	// position_compute_shader.bind_buffer(position_compute_handle, 0);
-	// position_compute_shader.bind_buffer(velocity_compute_handle, 1);
-
-	// auto const test_entity = registry.create();
-	// registry.emplace_or_replace<transform_component>(test_entity, glm::vec3{0.0, 0.0, 0.0});
-	// registry.emplace_or_replace<physics_component>(test_entity, glm::vec3{0.0, 0.0, 0.0});
-	// auto const resolution{5};
-	// auto sphere{shape::create_sphere(resolution, 0.5f)};
-	// registry.emplace_or_replace<renderable>(test_entity, sphere);
-	// registry.emplace_or_replace<sphere_component>(test_entity, resolution, 0.5f);
-	// auto const face_entity = registry.create();
-	// registry.emplace_or_replace<renderable>(face_entity, shape::create_plane());
 }
 
 auto world::tick(float delta_time) -> void {
 	EASY_FUNCTION();
 
-	
-
-	// std::vector<glm::vec4> position_buffer{};
-	// EASY_BLOCK("CREATE GRAVITY POSITION");
-	// std::transform(position_view.begin(), position_view.end(), std::back_inserter(position_buffer), 
-	// [&registry = registry](entt::entity entity) {
-	// 	auto const pos = registry.get<transform_component>(entity).position;
-	// 	auto const mass = registry.get<physics_component>(entity).mass;
-	// 	return glm::vec4{pos.x, pos.y, pos.z, mass};
-	// });
-	// EASY_END_BLOCK;
-
-	// std::vector<glm::vec4> velocity_buffer{position_buffer.size(), glm::vec4{}};
-	// position_compute_handle = gravity_compute_shader.generate_buffer(position_buffer.size() * sizeof(compute_vec3<float>), 2, GL_DYNAMIC_READ);
-	// velocity_compute_handle = gravity_compute_shader.generate_buffer(position_buffer.size() * sizeof(compute_vec3<float>), 3, GL_DYNAMIC_COPY);
 	EASY_BLOCK("VELOCITY SHADER");
 	gravity_compute_shader.use();
-	// gravity_compute_shader.regenerate_buffer(position_buffer, position_compute_handle);
-	// gravity_compute_shader.regenerate_buffer(velocity_buffer, velocity_compute_handle);
-	// gravity_compute_shader.upload(position_buffer, position_compute_handle);
 	gravity_compute_shader.upload_uniform("delta_time", delta_time);
 	gravity_compute_shader.upload_uniform("gravity_constant", registry.ctx<const gravity_system::gravity_constant>().value);
 	auto const buffer_size{registry.view<physics_component>().size()};
 	auto const workgroup_size{static_cast<unsigned int>(buffer_size / 32 + (buffer_size % 32 == 0 ? 0 : 1))};
 	gravity_compute_shader.dispatch(std::max(workgroup_size, 1u), 1, 1);
 
-	// gravity_compute_shader.read(velocity_buffer, velocity_compute_handle);
 	EASY_END_BLOCK;
 
 	EASY_BLOCK("POSITION SHADER");
 	position_compute_shader.use();
 	position_compute_shader.upload_uniform("delta_time", delta_time);
 	position_compute_shader.dispatch(std::max(workgroup_size, 1u), 1, 1);
-	std::vector<glm::vec4> position_buffer{};
-	position_buffer.resize(buffer_size);
-	position_compute_shader.read(position_buffer, position_compute_handle);
 	EASY_END_BLOCK;
-
-	// gravity_compute_shader.read(velocity_buffer, velocity_compute_handle);
-	auto position_view = registry.view<transform_component, physics_component>();
-	int i{0};
-	EASY_BLOCK("PATCH");
-	for (auto [entity, transform, physics] : position_view.each()) {
-		// auto new_velocity{velocity_buffer[i++]};
-		auto new_position{position_buffer[i++]};
-		// physics.velocity += glm::vec3{new_velocity.x, new_velocity.y, new_velocity.z};
-		// registry.patch<physics_component>(entity, [new_velocity, delta_time](auto& p) {
-		// 	p.velocity += glm::vec3{new_velocity.x, new_velocity.y, new_velocity.z};
-		// });
-		auto velocity = physics.velocity;
-		registry.patch<transform_component>(entity, [new_position, delta_time](auto& trans) {
-			trans.position = new_position;
-		});
-	}
-
-	// gravity_system::update(registry, delta_time);
-
-	// auto sphere_view = registry.view<const transform_component, sphere_component, renderable>(entt::exclude<deletion_component>);
-
-	// std::vector<entt::entity> marked_for_deletion{};
-
-	// for (auto [entity, transform, sphere, renderable] : sphere_view.each()) {
-	// 	for (auto [entity_other, transform_other, sphere_other, renderable_other] : sphere_view.each()) {
-	// 		if (entity != entity_other) {
-	// 			auto const distance{glm::distance2(transform.position, transform_other.position)};
-	// 			if (distance < (sphere.radius + sphere_other.radius)) {
-	// 				sphere.radius = std::cbrtf(std::powf(sphere.radius, 3.f) + std::powf(sphere_other.radius, 3.f));
-	// 				sphere.resolution = std::max(sphere.resolution, sphere_other.resolution);
-	// 				auto const name1{registry.get<name_component>(entity).name};
-	// 				auto const name2{registry.get<name_component>(entity_other).name};
-	// 				// fmt::print("NAME1 {}, NAME2 {}: SIZE: {}\n", name1, name2, renderable.model.meshes.size());
-	// 				shape::regenerate_sphere(renderable.model, sphere.resolution, sphere.radius);
-	// 				auto& physics = registry.get<physics_component>(entity);
-	// 				auto& physics_other = registry.get<physics_component>(entity_other);
-	// 				physics.mass += physics_other.mass;
-	// 				// physics.velocity += physics_other.velocity;
-	// 				// registry.emplace<physics_component>(entity, glm::vec3{0.f}, sphere.radius * 2);
-	// 				registry.emplace_or_replace<deletion_component>(entity_other);
-	// 				// fmt::print("DESTROYED ENTITY: {}\n", name2);
-	// 			}
-	// 		}
-	// 	}
-	// }
-	// auto destroy_view = registry.view<deletion_component>();
-	// registry.destroy(destroy_view.begin(), destroy_view.end());
 }
 
 auto world::update(float elapsed_time, float delta_time) -> void {
@@ -166,6 +84,10 @@ auto world::update(float elapsed_time, float delta_time) -> void {
 	}
 
 	if (ImGui::Button("Spawn moon system")) {
+		position_compute_shader.use();
+		position_compute_shader.clear_buffer(position_compute_handle);
+		gravity_compute_shader.use();
+		gravity_compute_shader.clear_buffer(velocity_compute_handle);
 		registry.clear();
 
 		auto const planet = registry.create();
@@ -191,9 +113,12 @@ auto world::update(float elapsed_time, float delta_time) -> void {
 		registry.emplace_or_replace<sphere_component>(planet, 15, 5.f);
 	}
 	ImGui::DragFloatRange2("Band", &asteroid_inner_radius, &asteroid_outer_radius);
-	// ImGui::SliderFloat2("Band", asteroid_radii, 0.f, 100.f);
-	// ImGui::DragFloatRange2("Band", &asteroid_inner_radius, &asteroid_outer_radius)
+
 	if (ImGui::Button("Spawn Asteroids")) {
+		gravity_compute_shader.use();
+		gravity_compute_shader.clear_buffer(position_compute_handle);
+		gravity_compute_shader.use();
+		gravity_compute_shader.clear_buffer(velocity_compute_handle);
 		registry.clear();
 
 		auto const planet = registry.create();
@@ -218,10 +143,7 @@ auto world::update(float elapsed_time, float delta_time) -> void {
 			auto const init_velocity{std::sqrt(
 				registry.ctx<const gravity_system::gravity_constant>().value * (planet_physics.mass + 1 / asteroid_physics.mass) / glm::length(asteroid_transform.position))};
 			asteroid_physics.velocity = init_velocity_direction * init_velocity;
-			auto asteroid_sphere{shape::create_sphere(3, 0.1f)};
-			registry.emplace<renderable>(asteroid, asteroid_sphere);
 
-			registry.emplace_or_replace<sphere_component>(asteroid, 3, 0.1f);
 			registry.emplace<name_component>(asteroid, "ASTEROID");
 			registry.emplace<instanced_component>(asteroid);
 		}
@@ -259,24 +181,8 @@ auto world::draw(renderer& renderer, float elapsed_time, float delta_time) const
 	EASY_FUNCTION();
 	(void)delta_time;
 	// https://learnopengl.com/Advanced-OpenGL/Instancing
-	auto instanced_view = registry.view<const transform_component, const instanced_component>();
-	// for (auto&& [entity, renderable, position] : view.each()) {
-	// 	renderer.draw_model(renderable.model, {position.position}, elapsed_time, delta_time);
-	// }
-	std::vector<glm::mat4> matrices{};
-	EASY_BLOCK("CREATE MATRICES");
-	instanced_view.each([&](auto entity, auto const& transform) {
-		(void)entity;
-		matrices.emplace_back(glm::translate(glm::mat4{1.f}, transform.position));
-		// matrices.emplace_back(glm::rotate(glm::translate(glm::mat4{1.f}, transform.position), glm::radians(elapsed_time * 100.f), glm::vec3{0.f, 1.f, 0.f}));
-	});
-	EASY_END_BLOCK;
-	// std::transform(std::cbegin(view), std::cend(view), std::back_inserter(matrices), [](auto entity) {
-	// 	auto transform = 
-	// 	return glm::translate(glm::mat4{1.f}, transform.position);
-	// });
-	std::span<glm::mat4> matrices_span{matrices};
-	renderer.draw_asteroid_instanced(matrices_span);
+	auto instanced_view = registry.view<const instanced_component>();
+	renderer.draw_asteroid_instanced(instanced_view.size());
 
 	auto view = registry.view<const transform_component, const renderable>(entt::exclude<instanced_component>);
 	renderer.start_non_instanced();

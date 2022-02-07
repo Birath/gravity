@@ -33,25 +33,17 @@ auto compute::buffer_size() const -> size_t {
 	return static_cast<size_t>(size);
 }
 
+auto compute::clear_buffer(unsigned int handle) -> void {
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, handle);
+	GLint usage;
+	glGetBufferParameteriv(GL_SHADER_STORAGE_BUFFER, GL_BUFFER_USAGE, &usage);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 0, (void*)nullptr, usage);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
 auto compute::use() -> void {
 	compute_shader.use();
 }
-
-// template <typename T>
-// auto compute::upload(std::vector<T> const& buffer, unsigned int handle) -> bool {
-// 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, handle);
-// 	glBufferSubData(GL_SHADER_SOURCE_LENGTH, 0, buffer.size() * sizeof(T), &buffer[0]);
-// 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-// 	return glGetError() != GL_NO_ERROR;
-// }
-
-// template <typename T>
-// auto compute::read(std::vector<T>& buffer, unsigned int handle) -> bool {
-// 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, handle);
-// 	glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, buffer.size() * sizeof(T), &buffer[0]);
-// 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-// 	return glGetError() != GL_NO_ERROR;
-// }
 
 auto compute::dispatch(unsigned int x, unsigned int y, unsigned int z) -> void {
 	compute_shader.use();

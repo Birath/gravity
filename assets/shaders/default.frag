@@ -7,5 +7,5 @@ out vec4 out_color;
 
 void main(void)
 {
-    out_color = vec4(vec3(1.0, 0.0, 0.8667), 1);
+    out_color = vec4(vec3(normalize(abs(frag_position))), 1);
 }

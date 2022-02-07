@@ -16,7 +16,7 @@ public:
 	renderer();
 
 	auto draw_model(model const& model, glm::vec3 const& position, float elapsed_time, float delta_time) const -> void;
-	auto draw_asteroid_instanced(std::span<glm::mat4 const> model_matrices) const -> void;
+	auto draw_asteroid_instanced(size_t count) const -> void;
 	auto draw_mesh(mesh const& mesh, float elapsed_time, float delta_time) const -> void;
 	auto start_renderer(glm::mat4& render_view) -> void;
 	

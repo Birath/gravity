@@ -26,6 +26,7 @@ void main(void)
 	gl_Position = m.mvp * vec4(position, 1.0);
     
 	frag_position = (m.model * vec4(position, 1.0)).xyz;
+    frag_position = vec3(0.9059, 0.8196, 0.0627);
     frag_normal = normalize(mat3(m.model) * normal);
     frag_uv = uv;
 }
