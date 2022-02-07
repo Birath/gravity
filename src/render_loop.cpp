@@ -186,6 +186,11 @@ auto render_loop::loop(world& world, renderer& renderer) -> bool {
 					switch (e.window.event) {
 						case SDL_WINDOWEVENT_RESIZED: {
 							renderer.resize(e.window.data1, e.window.data2);
+							break;
+						}
+						case SDL_WINDOWEVENT_MAXIMIZED: {
+							toggle_window_fullscreen();
+							break;
 						}
 					}
 
@@ -242,8 +247,15 @@ auto render_loop::show_loop_settings_window() -> void {
 	constexpr uint64_t min_ticks{0};
 	ImGui::Begin("Loop settings");
 	ImGui::SliderScalar("Max ticks", ImGuiDataType_U64, &max_ticks_per_frame, &min_ticks, &max_ticks, "%d", 1.f);
-	// ImGui::SliderInt("Max ticks", &max_ticks_per_frame, 0, 60);
+	if (ImGui::Button("Toggle Fullscreen")) {
+		toggle_window_fullscreen();
+	}
 	ImGui::End();
+}
+
+auto render_loop::toggle_window_fullscreen() -> void {
+	SDL_SetWindowFullscreen(window, is_fullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+	is_fullscreen = !is_fullscreen;
 }
 
 } // namespace gravity

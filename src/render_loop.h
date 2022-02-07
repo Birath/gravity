@@ -35,9 +35,11 @@ public:
 private:
 	auto loop(world& world, renderer& renderer) -> bool;
 	auto show_loop_settings_window() -> void;
+	// should be in a window class
+	auto toggle_window_fullscreen() -> void;
 	
 	static auto show_render_setting_window(renderer& renderer) -> void;
-	
+
 	SDL_Window* window{};
 	SDL_GLContext context{};
 	uint64_t clock_frequency{};
@@ -54,6 +56,8 @@ private:
 	size_t fps_count{0};
 	size_t tick_count{0};
 	bool accept_mouse_input{false};
+	// should be in a window class
+	bool is_fullscreen{false};
 };
 
 } // namespace gravity
