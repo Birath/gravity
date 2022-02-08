@@ -38,8 +38,10 @@ endif()
 
 add_subdirectory(dependencies)
 add_subdirectory(utils)
-find_package(easy_profiler REQUIRED)
+
+MESSAGE(STATUS "USE_PROFILER: ${USE_PROFILER}")
 if (USE_PROFILER)
+	find_package(easy_profiler REQUIRED)
 	target_compile_definitions(gravity PRIVATE EASY_PROFILER)
 endif()
 
@@ -53,7 +55,7 @@ target_link_libraries(gravity PRIVATE
 	dependency_imgui
 	stb_image
 	utils
-	easy_profiler
+	$<$<BOOL:${USE_PROFILER}>:easy_profiler>
 	$<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:m>)
 
 if(BUILD_SHARED_LIBS)
